@@ -95,15 +95,18 @@ def build_theme_css(dark: bool) -> str:
     .block-container {{ padding-top: 0.5rem; padding-bottom: 2rem; }}
     div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"] {{ margin-bottom: 0.35rem; }}
 
-    /* Sticky top navigation bar, sits above the hero banner and stays put on scroll */
-    .st-key-topnav {{
+    /* Sticky top navigation bar, sits above the hero banner and stays put on scroll.
+       Uses a hidden marker element + :has() to target the exact next row, which is
+       more reliable across Streamlit versions than relying on container(key=...). */
+    .topnav-marker {{ display: none; }}
+    div[data-testid="stElementContainer"]:has(.topnav-marker) + div[data-testid="stHorizontalBlock"] {{
         position: sticky;
         top: 0;
         z-index: 999;
         background: {t['app_bg']};
         border-bottom: 1px solid {t['panel_border']};
-        padding: 8px 6px 10px 6px;
-        margin: -0.5rem -0.2rem 14px -0.2rem;
+        padding: 10px 8px;
+        margin-bottom: 14px;
     }}
     .topnav-brand {{
         font-weight: 800;
@@ -112,19 +115,16 @@ def build_theme_css(dark: bool) -> str:
         padding-top: 8px;
         white-space: nowrap;
     }}
-    .st-key-topnav div[role="radiogroup"] {{
+    div[data-testid="stHorizontalBlock"] div[role="radiogroup"] {{
         gap: 6px;
         flex-wrap: wrap;
     }}
-    .st-key-topnav div[role="radiogroup"] label {{
+    div[data-testid="stHorizontalBlock"] div[role="radiogroup"] label {{
         background: {t['panel_bg']};
         border: 1px solid {t['panel_border']};
         border-radius: 999px;
-        padding: 4px 14px !important;
+        padding: 2px 12px !important;
         margin: 0 !important;
-    }}
-    .st-key-topnav div[role="radiogroup"] label div:first-child {{
-        display: none;
     }}
 
     /* Hero header */
@@ -691,20 +691,19 @@ if st.session_state["role"] == "admin":
 st.sidebar.divider()
 st.sidebar.caption("v2.0 · Hybrid Digital Twin Engine")
 
-topnav = st.container(key="topnav")
-with topnav:
-    c_brand, c_nav, c_toggle = st.columns([2.2, 6, 1.3])
-    with c_brand:
-        st.markdown("<div class='topnav-brand'>CDU Digital Twin</div>", unsafe_allow_html=True)
-    with c_nav:
-        if st.session_state.get("active_page_nav") not in nav_options:
-            st.session_state["active_page_nav"] = nav_options[0]
-        page = st.radio(
-            "Navigation", nav_options, horizontal=True,
-            label_visibility="collapsed", key="active_page_nav",
-        )
-    with c_toggle:
-        st.toggle("Dark mode", key="dark_mode")
+st.markdown('<div class="topnav-marker"></div>', unsafe_allow_html=True)
+c_brand, c_nav, c_toggle = st.columns([2.3, 5.5, 2])
+with c_brand:
+    st.markdown("<div class='topnav-brand'>CDU Digital Twin</div>", unsafe_allow_html=True)
+with c_nav:
+    if st.session_state.get("active_page_nav") not in nav_options:
+        st.session_state["active_page_nav"] = nav_options[0]
+    page = st.radio(
+        "Navigation", nav_options, horizontal=True,
+        label_visibility="collapsed", key="active_page_nav",
+    )
+with c_toggle:
+    st.toggle("Dark mode", key="dark_mode")
 
 # ==============================================================================
 # PAGE 1: MODEL TRAINING & DCS UPLOAD
