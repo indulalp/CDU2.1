@@ -911,7 +911,7 @@ elif page == "2. Yield Prediction":
     )
 
     active_pipeline = None
-    if st.session_state["authenticated"]:
+if st.session_state["authenticated"]:
         conn = get_db_connection()
         user_models_df = pd.read_sql_query(
             "SELECT id, model_tag, model_path FROM protected_models WHERE username = ?",
@@ -919,19 +919,26 @@ elif page == "2. Yield Prediction":
         )
         conn.close()
 
-        if user_models_df.empty:
-            st.warning("You do not have any models in your private vault yet. Please train and save one on Page 1 first.")
-            st.stop()
+        source_choice = st.radio("Choose Model to Predict With:", ["Public Guest Sandbox Model", "My Private Vault Models"], horizontal=True)
+        
+        if source_choice == "My Private Vault Models":
+            if user_models_df.empty:
+                st.warning("⚠️ You don't have any models saved in your private vault yet. Train one on Page 1 first!")
+            else:
+                tag_to_path = dict(zip(user_models_df["model_tag"], user_models_df["model_path"]))
+                selected_tag = st.selectbox("Select Your Model", options=list(tag_to_path.keys()))
+                chosen_path = tag_to_path[selected_tag]
+                
+                if chosen_path and os.path.exists(chosen_path):
+                    active_pipeline = joblib.load(chosen_path)
+                else:
+                    st.error("❌ Model file not found on disk.")
         else:
-            tag_to_path = dict(zip(user_models_df["model_tag"], user_models_df["model_path"]))
-            selected_tag = st.selectbox("Select Your Private Model:", options=list(tag_to_path.keys()))
-            chosen_path = tag_to_path[selected_tag]
-            active_pipeline = load_pipeline(chosen_path)
-            if active_pipeline is None:
-                st.error("Selected model artifact is missing from disk.")
-                st.stop()
+            if os.path.exists(GUEST_MODEL_FILE):
+                active_pipeline = joblib.load(GUEST_MODEL_FILE)
     else:
-        active_pipeline = load_pipeline(GUEST_MODEL_FILE)
+        if os.path.exists(GUEST_MODEL_FILE):
+            active_pipeline = joblib.load(GUEST_MODEL_FILE)
         if active_pipeline is None:
             st.warning("No default model available. Please train one on Page 1 or log in.")
             st.stop()
