@@ -21,7 +21,7 @@ from github import Github, GithubException
 # ==============================================================================
 st.set_page_config(
     page_title="CDU Hybrid Digital Twin Platform",
-    page_icon="🛢️",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -50,120 +50,166 @@ PHYSICS_SLOPES = {
 }
 
 # ==============================================================================
-# VISUAL THEME — custom CSS
+# VISUAL THEME — light/dark, switchable at runtime
 # ==============================================================================
-CUSTOM_CSS = """
+if "dark_mode" not in st.session_state:
+    st.session_state["dark_mode"] = False
+
+
+def build_theme_css(dark: bool) -> str:
+    if dark:
+        t = dict(
+            app_bg="#0B1220", app_text="#E7ECF3", muted_text="#9AA7BD",
+            panel_bg="#131B2E", panel_border="#243049",
+            metric_bg="#131B2E", metric_border="#243049", metric_label="#9AA7BD",
+            sidebar_bg="#060B15", sidebar_text="#E7ECF3",
+            input_bg="#1B263B", input_text="#E7ECF3", input_border="#2E3B55",
+            hero_grad="linear-gradient(120deg, #050A14 0%, #10233F 55%, #0E4C63 100%)",
+            table_filter="invert(0.9) hue-rotate(180deg)",
+        )
+    else:
+        t = dict(
+            app_bg="#FFFFFF", app_text="#1D2939", muted_text="#667085",
+            panel_bg="#F7F9FC", panel_border="#E3E8EF",
+            metric_bg="#FFFFFF", metric_border="#E3E8EF", metric_label="#475467",
+            sidebar_bg="#0B2540", sidebar_text="#E7ECF3",
+            input_bg="#FFFFFF", input_text="#0B2540", input_border="#D0D5DD",
+            hero_grad="linear-gradient(120deg, #0B2540 0%, #1565C0 55%, #00B4D8 100%)",
+            table_filter="none",
+        )
+
+    return f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    html, body, [class*="css"]  {
-        font-family: 'Inter', sans-serif;
-    }
+    html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; }}
 
-    :root {
-        --brand-navy: #0B2540;
-        --brand-blue: #1565C0;
-        --brand-cyan: #00B4D8;
-        --brand-amber: #FF8F00;
-        --panel-bg: #F7F9FC;
-    }
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
 
-    /* Hide default Streamlit chrome for a cleaner look */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+    .stApp {{ background: {t['app_bg']}; color: {t['app_text']}; }}
+    .stApp p, .stApp li, .stApp label, .stApp .stMarkdown {{ color: {t['app_text']}; }}
+    .stApp .stCaption, [data-testid="stCaptionContainer"] {{ color: {t['muted_text']} !important; }}
 
     /* Hero header */
-    .hero-banner {
-        background: linear-gradient(120deg, var(--brand-navy) 0%, var(--brand-blue) 55%, var(--brand-cyan) 100%);
-        padding: 28px 32px;
-        border-radius: 16px;
+    .hero-banner {{
+        background: {t['hero_grad']};
+        padding: 26px 32px;
+        border-radius: 14px;
         margin-bottom: 24px;
         box-shadow: 0 8px 24px rgba(11, 37, 64, 0.25);
-    }
-    .hero-title {
+    }}
+    .hero-title {{
         color: #FFFFFF;
-        font-size: 1.9rem;
-        font-weight: 800;
+        font-size: 1.7rem;
+        font-weight: 700;
         margin: 0;
-        letter-spacing: -0.02em;
-    }
-    .hero-subtitle {
+        letter-spacing: -0.01em;
+    }}
+    .hero-subtitle {{
         color: rgba(255,255,255,0.85);
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         margin-top: 6px;
-    }
-    .hero-badge {
+    }}
+    .hero-badge {{
         display: inline-block;
         background: rgba(255,255,255,0.15);
         color: #fff;
         border: 1px solid rgba(255,255,255,0.3);
         padding: 3px 12px;
         border-radius: 999px;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         margin-right: 8px;
         margin-top: 12px;
-    }
+    }}
 
     /* Section cards */
-    .section-card {
-        background: var(--panel-bg);
-        border: 1px solid #E3E8EF;
+    .section-card {{
+        background: {t['panel_bg']};
+        border: 1px solid {t['panel_border']};
         border-radius: 14px;
         padding: 20px 22px;
         margin-bottom: 18px;
-    }
+    }}
 
-    /* Metric-ish KPI tiles */
-    div[data-testid="stMetric"] {
-        background: #FFFFFF;
-        border: 1px solid #E3E8EF;
+    /* KPI tiles */
+    div[data-testid="stMetric"] {{
+        background: {t['metric_bg']};
+        border: 1px solid {t['metric_border']};
         border-radius: 12px;
         padding: 14px 16px;
         box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
-    }
-    div[data-testid="stMetricLabel"] {
-        font-weight: 600;
-        color: #475467;
-    }
+    }}
+    div[data-testid="stMetricLabel"] {{ font-weight: 600; color: {t['metric_label']}; }}
+    div[data-testid="stMetricValue"] {{ color: {t['app_text']}; }}
 
-    /* Sidebar branding */
-    section[data-testid="stSidebar"] {
-        background: var(--brand-navy);
-    }
-    section[data-testid="stSidebar"] * {
-        color: #E7ECF3 !important;
-    }
-    section[data-testid="stSidebar"] .stRadio label {
-        font-weight: 500;
-    }
+    /* Sidebar branding — labels/headings only, NOT the text you type */
+    section[data-testid="stSidebar"] {{ background: {t['sidebar_bg']}; }}
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
+    section[data-testid="stSidebar"] .stRadio label,
+    section[data-testid="stSidebar"] .stMarkdown {{
+        color: {t['sidebar_text']} !important;
+    }}
+
+    /* Text you actually type into any input, anywhere in the app — always readable */
+    input, textarea, select {{
+        color: {t['input_text']} !important;
+        background-color: {t['input_bg']} !important;
+        border: 1px solid {t['input_border']} !important;
+    }}
+    [data-baseweb="select"] > div {{
+        background-color: {t['input_bg']} !important;
+        border-color: {t['input_border']} !important;
+    }}
 
     /* Buttons */
-    div.stButton > button, div.stFormSubmitButton > button {
+    div.stButton > button, div.stFormSubmitButton > button {{
         border-radius: 10px;
         font-weight: 600;
+        border: 1px solid {t['panel_border']};
+    }}
+    div.stButton > button[kind="primary"], div.stFormSubmitButton > button[kind="primary"] {{
+        background: linear-gradient(90deg, #1565C0, #00B4D8);
+        color: #FFFFFF;
         border: none;
-    }
-    div.stButton > button[kind="primary"] {
-        background: linear-gradient(90deg, var(--brand-blue), var(--brand-cyan));
-    }
+    }}
 
-    .footer-note {
+    /* Top utility bar (theme toggle) */
+    .topbar-label {{
+        color: {t['muted_text']};
+        font-size: 0.8rem;
+        text-align: right;
+        margin-top: 6px;
+    }}
+
+    .footer-note {{
         text-align: center;
-        color: #98A2B3;
+        color: {t['muted_text']};
         font-size: 0.78rem;
         padding-top: 24px;
-    }
+    }}
 </style>
 """
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+
+st.markdown(build_theme_css(st.session_state["dark_mode"]), unsafe_allow_html=True)
+
+_top_l, _top_r = st.columns([6, 1])
+with _top_r:
+    st.toggle("Dark mode", key="dark_mode")
 
 
 def hero_header(title, subtitle, badges=None):
-    badges_html = "".join(f"<span class='hero-badge'>{b}</span>" for b in (badges or []))
+    badges_html = "".join(f"<span class='hero-badge'>{b}</span>"for b in (badges or []))
     st.markdown(
         f"""
         <div class="hero-banner">
-            <p class="hero-title">🛢️ {title}</p>
+            <p class="hero-title">{title}</p>
             <p class="hero-subtitle">{subtitle}</p>
             {badges_html}
         </div>
@@ -250,7 +296,7 @@ def sync_file_to_github(local_file_path, repo_file_path, commit_message="Auto-sy
                 raise e
         return True
     except Exception as err:
-        st.sidebar.warning(f"⚠️ GitHub Sync Alert: {err}")
+        st.sidebar.warning(f"GitHub Sync Alert: {err}")
         return False
 
 
@@ -319,7 +365,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, timestamp TIMESTAMP,
             inputs_json TEXT, outputs_json TEXT)''')
 
-    # IMPORTANT: "INSERT OR IGNORE" (not REPLACE) — this seeds default accounts
+    # IMPORTANT: "INSERT OR IGNORE"(not REPLACE) — this seeds default accounts
     # only if they don't already exist, so an admin password change survives
     # the next script rerun instead of being silently reset every time.
     c.execute("INSERT OR IGNORE INTO users VALUES (?, ?, ?)", ("admin", hash_password("Admin@123"), "admin"))
@@ -380,15 +426,48 @@ def delete_client_user(target_username):
     sync_file_to_github(DB_PATH, DB_PATH, f"Auto-sync: Deleted user {target_username}")
 
 
-def get_visitor_geo():
+def get_client_ip():
+    """
+    Streamlit's Python backend receives the request that hits the server,
+    not the visitor's browser directly. Behind Streamlit Community Cloud
+    or any reverse proxy, the real visitor IP (if forwarded at all) shows
+    up in the X-Forwarded-For header, not as the socket's peer address.
+    Without header forwarding configured on the host, this cannot be
+    recovered server-side — that's why it previously always resolved to
+    the server's own outbound IP.
+    """
     try:
-        res = requests.get("https://ipapi.co/json/", timeout=2.5).json()
+        headers = st.context.headers  # available on Streamlit 1.37+
+        if headers:
+            xff = headers.get("X-Forwarded-For")
+            if xff:
+                return xff.split(",")[0].strip()
+            real_ip = headers.get("X-Real-IP")
+            if real_ip:
+                return real_ip.strip()
+    except Exception:
+        pass
+    return None
+
+
+def get_visitor_geo():
+    client_ip = get_client_ip()
+    url = f"https://ipapi.co/{client_ip}/json/" if client_ip else "https://ipapi.co/json/"
+    try:
+        res = requests.get(url, timeout=3).json()
+        if res.get("error"):
+            raise ValueError(res.get("reason", "geo lookup failed"))
         return {
-            "ip": res.get("ip", "Local/VPN"), "city": res.get("city", "Unknown"),
-            "region": res.get("region", "Unknown"), "country": res.get("country_name", "Unknown"),
+            "ip": res.get("ip", client_ip or "Unknown"),
+            "city": res.get("city", "Unknown"),
+            "region": res.get("region", "Unknown"),
+            "country": res.get("country_name", "Unknown"),
         }
     except Exception:
-        return {"ip": "127.0.0.1", "city": "Internal", "region": "Internal", "country": "Internal"}
+        return {
+            "ip": client_ip or "Unavailable",
+            "city": "Unavailable", "region": "Unavailable", "country": "Unavailable",
+        }
 
 
 def log_login_event(username):
@@ -536,12 +615,12 @@ if "authenticated" not in st.session_state:
     st.session_state["username"] = "Guest"
     st.session_state["role"] = "guest"
 
-st.sidebar.markdown("## 🛢️ CDU Digital Twin")
+st.sidebar.markdown("## CDU Digital Twin")
 st.sidebar.caption("Hybrid Physics + ML Refinery Platform")
 st.sidebar.divider()
 
 if not st.session_state["authenticated"]:
-    with st.sidebar.expander("🔒 Member / Client Login", expanded=True):
+    with st.sidebar.expander("Member / Client Login", expanded=True):
         if login_is_locked():
             st.error("Too many failed attempts. Please refresh the page to try again.")
         else:
@@ -575,7 +654,7 @@ nav_options = ["1. Model Training & DCS Upload", "2. Yield Prediction"]
 if st.session_state["authenticated"]:
     nav_options.append("3. Protected Workspace & History")
 if st.session_state["role"] == "admin":
-    nav_options.append("🛡️ Admin Audit & Telemetry")
+    nav_options.append("Admin Audit & Telemetry")
 
 page = st.sidebar.radio("Navigation", nav_options)
 st.sidebar.divider()
@@ -619,7 +698,7 @@ if page == "1. Model Training & DCS Upload":
 
     st.subheader("Data Inspector")
     st.dataframe(df.head(5), use_container_width=True)
-    with st.expander("🔍 View Complete Raw Dataset"):
+    with st.expander("View Complete Raw Dataset"):
         st.dataframe(df, use_container_width=True)
 
     has_density = any("dens" in str(c).lower() or "sg" in str(c).lower() for c in df.columns)
@@ -652,7 +731,7 @@ if page == "1. Model Training & DCS Upload":
         if save_as_protected:
             model_tag = c_save2.text_input("Protected Model Tag", value=f"{st.session_state['username']}_v1")
 
-    if st.button("🚀 Train Digital Twin", type="primary"):
+    if st.button("Train Digital Twin", type="primary"):
         if not input_cols or not flow_cols:
             st.error("Please select at least one input column and one product-flow column.")
             st.stop()
@@ -663,17 +742,17 @@ if page == "1. Model Training & DCS Upload":
             # Guard against zero/negative crude flow rows before dividing by them
             clean_df = clean_df[clean_df[crude_col] > 0]
             if clean_df.empty:
-                st.error("❌ No valid rows remain after removing zero/negative crude-flow entries.")
+                st.error("No valid rows remain after removing zero/negative crude-flow entries.")
                 st.stop()
 
             total_out = clean_df[flow_cols].sum(axis=1)
             valid_df = clean_df[np.abs(total_out - clean_df[crude_col]) / clean_df[crude_col] < 0.05].copy()
 
             if valid_df.empty:
-                st.error("❌ Mass balance error: Data does not close within 5%.")
+                st.error("Mass balance error: Data does not close within 5%.")
                 st.stop()
             if len(valid_df) < 5:
-                st.error(f"❌ Only {len(valid_df)} valid rows after cleaning — need at least 5 to train/test split.")
+                st.error(f"Only {len(valid_df)} valid rows after cleaning — need at least 5 to train/test split.")
                 st.stop()
 
             yield_targets = valid_df[flow_cols].div(valid_df[crude_col], axis=0)
@@ -716,11 +795,11 @@ if page == "1. Model Training & DCS Upload":
 
                 sync_file_to_github(save_path, save_path, f"Auto-sync: New protected model {model_tag}")
                 sync_file_to_github(DB_PATH, DB_PATH, f"Auto-sync: Registered protected model {model_tag}")
-                st.success(f"🔒 Model saved to your vault and pushed to GitHub as `{model_tag}`!")
+                st.success(f"Model saved to your vault and pushed to GitHub as `{model_tag}`!")
             else:
                 joblib.dump(pipeline, GUEST_MODEL_FILE)
                 sync_file_to_github(GUEST_MODEL_FILE, GUEST_MODEL_FILE, "Auto-sync: Updated guest model")
-                st.success("🌐 Model trained and saved into public guest sandbox.")
+                st.success("Model trained and saved into public guest sandbox.")
 
 # ==============================================================================
 # PAGE 2: REAL-TIME PREDICTION
@@ -742,7 +821,7 @@ elif page == "2. Yield Prediction":
         conn.close()
 
         if user_models_df.empty:
-            st.warning("⚠️ You do not have any models in your private vault yet. Please train and save one on Page 1 first.")
+            st.warning("You do not have any models in your private vault yet. Please train and save one on Page 1 first.")
             st.stop()
         else:
             tag_to_path = dict(zip(user_models_df["model_tag"], user_models_df["model_path"]))
@@ -750,12 +829,12 @@ elif page == "2. Yield Prediction":
             chosen_path = tag_to_path[selected_tag]
             active_pipeline = load_pipeline(chosen_path)
             if active_pipeline is None:
-                st.error("❌ Selected model artifact is missing from disk.")
+                st.error("Selected model artifact is missing from disk.")
                 st.stop()
     else:
         active_pipeline = load_pipeline(GUEST_MODEL_FILE)
         if active_pipeline is None:
-            st.warning("⚠️ No default model available. Please train one on Page 1 or log in.")
+            st.warning("No default model available. Please train one on Page 1 or log in.")
             st.stop()
 
     input_cols = active_pipeline["input_cols"]
@@ -785,7 +864,7 @@ elif page == "2. Yield Prediction":
             fallback = last_in.get(feat, 348.0 if "cot" in feat.lower() else (1939.0 if "crude" in feat.lower() else (1.56 if "p_kgcm2" in feat.lower() else 17.2)))
             input_data[feat] = cols[i % 3].number_input(feat, value=float(fallback), format="%.2f")
 
-    if st.button("🔮 Run Simulation & Predict", type="primary"):
+    if st.button("Run Simulation & Predict", type="primary"):
         crude_col = active_pipeline["crude_col"]
         if input_data.get(crude_col, 0) <= 0:
             st.error(f"`{crude_col}` must be greater than zero to run a simulation.")
@@ -835,21 +914,21 @@ elif page == "2. Yield Prediction":
 
         c_left, c_right = st.columns(2)
         with c_left:
-            st.subheader("📦 Product Recovery Yields")
+            st.subheader("Product Recovery Yields")
             st.table(pd.DataFrame({
                 "Cut Stream": flow_targets,
-                "Yield (wt%)": [f"{y*100:.2f}%" for y in norm_yields],
-                "Rate (t/h)": [f"{f:.2f}" for f in pred_flows],
+                "Yield (wt%)": [f"{y*100:.2f}%"for y in norm_yields],
+                "Rate (t/h)": [f"{f:.2f}"for f in pred_flows],
             }))
         with c_right:
-            st.subheader("🌡️ Predicted Column Profile")
+            st.subheader("Predicted Column Profile")
             st.table(pd.DataFrame({
                 "Parameter": state_targets,
-                "Predicted Value": [f"{v:.2f} {'°C' if 'temp' in n.lower() else 't/h'}" for n, v in zip(state_targets, pred_states)],
+                "Predicted Value": [f"{v:.2f} {'°C' if 'temp' in n.lower() else 't/h'}"for n, v in zip(state_targets, pred_states)],
             }))
 
         st.divider()
-        st.subheader("📊 Feed & Recovery Analytics")
+        st.subheader("Feed & Recovery Analytics")
         display_labels = [label_map.get(col, col) for col in flow_targets]
         plot_df = pd.DataFrame({
             "Product Cut": display_labels, "Mass Flow (t/h)": pred_flows, "Yield Share (%)": norm_yields * 100.0,
@@ -863,7 +942,7 @@ elif page == "2. Yield Prediction":
             st.markdown("**Yield Fraction Breakdown (% Recovery)**")
             st.bar_chart(plot_df.set_index("Product Cut")[["Yield Share (%)"]], color="#FF8F00")
 
-        with st.expander("📈 Dynamic Furnace Sensitivity Curve (Yield % vs COT)", expanded=True):
+        with st.expander("Dynamic Furnace Sensitivity Curve (Yield % vs COT)", expanded=True):
             base_cot = float(input_data.get('cot_degC', stats['mean_cot']))
             cot_sweep = np.linspace(base_cot - 15.0, base_cot + 15.0, 31)
             sweep_yields = []
@@ -886,7 +965,7 @@ elif page == "3. Protected Workspace & History":
     hero_header(f"Protected Workspace", f"Signed in as {st.session_state['username']}", badges=["Private", "Isolated per user"])
     conn = get_db_connection()
 
-    tab_my_models, tab_my_sims = st.tabs(["📁 My Saved Models", "📜 My Simulation History"])
+    tab_my_models, tab_my_sims = st.tabs(["My Saved Models", "My Simulation History"])
 
     with tab_my_models:
         my_models = pd.read_sql_query(
@@ -913,12 +992,12 @@ elif page == "3. Protected Workspace & History":
 # ==============================================================================
 # PAGE 4: ADMIN GOVERNANCE & TELEMETRY
 # ==============================================================================
-elif page == "🛡️ Admin Audit & Telemetry":
+elif page == "Admin Audit & Telemetry":
     hero_header("Enterprise Client Governance & Audit Portal", "Provision accounts, inspect client workspaces, review access telemetry.", badges=["Admin Only"])
     conn = get_db_connection()
 
     tab_manage, tab_client_inspect, tab_logs = st.tabs([
-        "👥 Client Account Provisioning", "🔍 Inspect & Modify Client Spaces", "📍 Access & Location Audit"
+        "Client Account Provisioning", "Inspect & Modify Client Spaces", "Access & Location Audit"
     ])
 
     with tab_manage:
@@ -1011,7 +1090,7 @@ elif page == "🛡️ Admin Audit & Telemetry":
 
     with tab_logs:
         st.subheader("Global Sign-in Geolocation & Telemetry")
-        st.caption("⚠️ Contains user IP/location data — treat as sensitive and avoid pushing this table to a public repo.")
+        st.caption("Contains user IP/location data — treat as sensitive and avoid pushing this table to a public repo.")
         access_df = pd.read_sql_query(
             "SELECT username, login_time, ip_address, city, region, country FROM access_logs ORDER BY login_time DESC", conn
         )
