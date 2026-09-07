@@ -91,36 +91,72 @@ def build_theme_css(dark: bool) -> str:
     .stApp p, .stApp li, .stApp label, .stApp .stMarkdown {{ color: {t['app_text']}; }}
     .stApp .stCaption, [data-testid="stCaptionContainer"] {{ color: {t['muted_text']} !important; }}
 
+    /* Tighten default Streamlit vertical spacing between blocks */
+    .block-container {{ padding-top: 0.5rem; padding-bottom: 2rem; }}
+    div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"] {{ margin-bottom: 0.35rem; }}
+
+    /* Sticky top navigation bar, sits above the hero banner and stays put on scroll */
+    .st-key-topnav {{
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        background: {t['app_bg']};
+        border-bottom: 1px solid {t['panel_border']};
+        padding: 8px 6px 10px 6px;
+        margin: -0.5rem -0.2rem 14px -0.2rem;
+    }}
+    .topnav-brand {{
+        font-weight: 800;
+        font-size: 1.05rem;
+        color: {t['app_text']};
+        padding-top: 8px;
+        white-space: nowrap;
+    }}
+    .st-key-topnav div[role="radiogroup"] {{
+        gap: 6px;
+        flex-wrap: wrap;
+    }}
+    .st-key-topnav div[role="radiogroup"] label {{
+        background: {t['panel_bg']};
+        border: 1px solid {t['panel_border']};
+        border-radius: 999px;
+        padding: 4px 14px !important;
+        margin: 0 !important;
+    }}
+    .st-key-topnav div[role="radiogroup"] label div:first-child {{
+        display: none;
+    }}
+
     /* Hero header */
     .hero-banner {{
         background: {t['hero_grad']};
-        padding: 26px 32px;
+        padding: 20px 26px;
         border-radius: 14px;
-        margin-bottom: 24px;
+        margin-bottom: 12px;
         box-shadow: 0 8px 24px rgba(11, 37, 64, 0.25);
     }}
-    .hero-title {{
-        color: #FFFFFF;
-        font-size: 1.7rem;
+    .hero-banner .hero-title {{
+        color: #FFFFFF !important;
+        font-size: 1.6rem;
         font-weight: 700;
         margin: 0;
         letter-spacing: -0.01em;
     }}
-    .hero-subtitle {{
-        color: rgba(255,255,255,0.85);
-        font-size: 0.92rem;
-        margin-top: 6px;
+    .hero-banner .hero-subtitle {{
+        color: rgba(255,255,255,0.9) !important;
+        font-size: 0.9rem;
+        margin-top: 4px;
     }}
-    .hero-badge {{
+    .hero-banner .hero-badge {{
         display: inline-block;
-        background: rgba(255,255,255,0.15);
-        color: #fff;
-        border: 1px solid rgba(255,255,255,0.3);
-        padding: 3px 12px;
+        background: rgba(255,255,255,0.18);
+        color: #fff !important;
+        border: 1px solid rgba(255,255,255,0.35);
+        padding: 3px 11px;
         border-radius: 999px;
-        font-size: 0.72rem;
-        margin-right: 8px;
-        margin-top: 12px;
+        font-size: 0.7rem;
+        margin-right: 6px;
+        margin-top: 8px;
     }}
 
     /* Section cards */
@@ -128,8 +164,8 @@ def build_theme_css(dark: bool) -> str:
         background: {t['panel_bg']};
         border: 1px solid {t['panel_border']};
         border-radius: 14px;
-        padding: 20px 22px;
-        margin-bottom: 18px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
     }}
 
     /* KPI tiles */
@@ -198,10 +234,6 @@ def build_theme_css(dark: bool) -> str:
 
 
 st.markdown(build_theme_css(st.session_state["dark_mode"]), unsafe_allow_html=True)
-
-_top_l, _top_r = st.columns([6, 1])
-with _top_r:
-    st.toggle("Dark mode", key="dark_mode")
 
 
 def hero_header(title, subtitle, badges=None):
@@ -656,9 +688,23 @@ if st.session_state["authenticated"]:
 if st.session_state["role"] == "admin":
     nav_options.append("Admin Audit & Telemetry")
 
-page = st.sidebar.radio("Navigation", nav_options)
 st.sidebar.divider()
 st.sidebar.caption("v2.0 · Hybrid Digital Twin Engine")
+
+topnav = st.container(key="topnav")
+with topnav:
+    c_brand, c_nav, c_toggle = st.columns([2.2, 6, 1.3])
+    with c_brand:
+        st.markdown("<div class='topnav-brand'>CDU Digital Twin</div>", unsafe_allow_html=True)
+    with c_nav:
+        if st.session_state.get("active_page_nav") not in nav_options:
+            st.session_state["active_page_nav"] = nav_options[0]
+        page = st.radio(
+            "Navigation", nav_options, horizontal=True,
+            label_visibility="collapsed", key="active_page_nav",
+        )
+    with c_toggle:
+        st.toggle("Dark mode", key="dark_mode")
 
 # ==============================================================================
 # PAGE 1: MODEL TRAINING & DCS UPLOAD
