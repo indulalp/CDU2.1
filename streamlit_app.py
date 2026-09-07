@@ -96,19 +96,22 @@ def build_theme_css(dark: bool) -> str:
     div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"] {{ margin-bottom: 0.35rem; }}
 
     /* Fixed top navigation bar — stays pinned to the viewport at all times,
-       never scrolls away. Targeted via a hidden marker + :has() so it works
-       across Streamlit versions without relying on container(key=...). */
+       never scrolls away. Targets the FIRST horizontal row on the page
+       (which is always our nav row, since nothing else renders before it),
+       covering both current and legacy Streamlit DOM naming so this works
+       regardless of Streamlit version. */
     .topnav-marker {{ display: none; }}
-    div[data-testid="stElementContainer"]:has(.topnav-marker) + div[data-testid="stHorizontalBlock"] {{
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 900;
-        background: {t['app_bg']};
-        border-bottom: 1px solid {t['panel_border']};
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        padding: 10px 8px;
+    div[data-testid="stHorizontalBlock"]:first-of-type,
+    div.row-widget.stHorizontal:first-of-type {{
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 999999 !important;
+        background: {t['app_bg']} !important;
+        border-bottom: 1px solid {t['panel_border']} !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08) !important;
+        padding: 10px 8px !important;
     }}
     .topnav-brand {{
         font-weight: 800;
@@ -121,13 +124,13 @@ def build_theme_css(dark: bool) -> str:
     /* The sidebar must always render above the fixed nav bar, so the login
        box never gets visually covered by it. */
     section[data-testid="stSidebar"] {{
-        position: relative;
-        z-index: 950;
+        position: relative !important;
+        z-index: 1000000 !important;
     }}
 
     /* "Key" style nav buttons — rectangular, bordered, slightly raised like a keycap */
-    div[data-testid="stElementContainer"]:has(.topnav-marker) + div[data-testid="stHorizontalBlock"]
-        div.stButton > button {{
+    div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button,
+    div.row-widget.stHorizontal:first-of-type div.stButton > button {{
         border-radius: 8px;
         font-weight: 600;
         font-size: 0.85rem;
@@ -137,13 +140,13 @@ def build_theme_css(dark: bool) -> str:
         border: 1px solid {t['panel_border']};
         box-shadow: 0 2px 0 {t['panel_border']};
     }}
-    div[data-testid="stElementContainer"]:has(.topnav-marker) + div[data-testid="stHorizontalBlock"]
-        div.stButton > button:active {{
+    div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button:active,
+    div.row-widget.stHorizontal:first-of-type div.stButton > button:active {{
         box-shadow: 0 0 0 {t['panel_border']};
         transform: translateY(2px);
     }}
-    div[data-testid="stElementContainer"]:has(.topnav-marker) + div[data-testid="stHorizontalBlock"]
-        div.stButton > button[kind="primary"] {{
+    div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button[kind="primary"],
+    div.row-widget.stHorizontal:first-of-type div.stButton > button[kind="primary"] {{
         box-shadow: 0 2px 0 #0B2540;
     }}
 
@@ -671,8 +674,20 @@ st.sidebar.markdown("## CDU Digital Twin")
 st.sidebar.caption("Hybrid Physics + ML Refinery Platform")
 st.sidebar.divider()
 
+
+def safe_login_expander():
+    """expanded=True is only the initial state; a `key` lets Streamlit
+    remember whether the user manually collapsed it instead of forcing it
+    back open on every rerun. Falls back for older Streamlit versions
+    that don't accept `key` on st.expander."""
+    try:
+        return st.sidebar.expander("Member / Client Login", expanded=True, key="login_expander")
+    except TypeError:
+        return st.sidebar.expander("Member / Client Login", expanded=True)
+
+
 if not st.session_state["authenticated"]:
-    with st.sidebar.expander("Member / Client Login", expanded=True):
+    with safe_login_expander():
         if login_is_locked():
             st.error("Too many failed attempts. Please refresh the page to try again.")
         else:
