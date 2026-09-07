@@ -92,21 +92,23 @@ def build_theme_css(dark: bool) -> str:
     .stApp .stCaption, [data-testid="stCaptionContainer"] {{ color: {t['muted_text']} !important; }}
 
     /* Tighten default Streamlit vertical spacing between blocks */
-    .block-container {{ padding-top: 0.5rem; padding-bottom: 2rem; }}
+    .block-container {{ padding-top: 4.6rem; padding-bottom: 2rem; }}
     div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"] {{ margin-bottom: 0.35rem; }}
 
-    /* Sticky top navigation bar, sits above the hero banner and stays put on scroll.
-       Uses a hidden marker element + :has() to target the exact next row, which is
-       more reliable across Streamlit versions than relying on container(key=...). */
+    /* Fixed top navigation bar — stays pinned to the viewport at all times,
+       never scrolls away. Targeted via a hidden marker + :has() so it works
+       across Streamlit versions without relying on container(key=...). */
     .topnav-marker {{ display: none; }}
     div[data-testid="stElementContainer"]:has(.topnav-marker) + div[data-testid="stHorizontalBlock"] {{
-        position: sticky;
+        position: fixed;
         top: 0;
-        z-index: 999;
+        left: 0;
+        right: 0;
+        z-index: 900;
         background: {t['app_bg']};
         border-bottom: 1px solid {t['panel_border']};
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         padding: 10px 8px;
-        margin-bottom: 14px;
     }}
     .topnav-brand {{
         font-weight: 800;
@@ -115,16 +117,34 @@ def build_theme_css(dark: bool) -> str:
         padding-top: 8px;
         white-space: nowrap;
     }}
-    div[data-testid="stHorizontalBlock"] div[role="radiogroup"] {{
-        gap: 6px;
-        flex-wrap: wrap;
+
+    /* The sidebar must always render above the fixed nav bar, so the login
+       box never gets visually covered by it. */
+    section[data-testid="stSidebar"] {{
+        position: relative;
+        z-index: 950;
     }}
-    div[data-testid="stHorizontalBlock"] div[role="radiogroup"] label {{
+
+    /* "Key" style nav buttons — rectangular, bordered, slightly raised like a keycap */
+    div[data-testid="stElementContainer"]:has(.topnav-marker) + div[data-testid="stHorizontalBlock"]
+        div.stButton > button {{
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 8px 10px;
         background: {t['panel_bg']};
+        color: {t['app_text']};
         border: 1px solid {t['panel_border']};
-        border-radius: 999px;
-        padding: 2px 12px !important;
-        margin: 0 !important;
+        box-shadow: 0 2px 0 {t['panel_border']};
+    }}
+    div[data-testid="stElementContainer"]:has(.topnav-marker) + div[data-testid="stHorizontalBlock"]
+        div.stButton > button:active {{
+        box-shadow: 0 0 0 {t['panel_border']};
+        transform: translateY(2px);
+    }}
+    div[data-testid="stElementContainer"]:has(.topnav-marker) + div[data-testid="stHorizontalBlock"]
+        div.stButton > button[kind="primary"] {{
+        box-shadow: 0 2px 0 #0B2540;
     }}
 
     /* Hero header */
@@ -691,19 +711,38 @@ if st.session_state["role"] == "admin":
 st.sidebar.divider()
 st.sidebar.caption("v2.0 · Hybrid Digital Twin Engine")
 
+NAV_LABELS = {
+    "1. Model Training & DCS Upload": "Model Training",
+    "2. Yield Prediction": "Yield Prediction",
+    "3. Protected Workspace & History": "Workspace",
+    "Admin Audit & Telemetry": "Admin Audit",
+}
+
+if st.session_state.get("active_page_nav") not in nav_options:
+    st.session_state["active_page_nav"] = nav_options[0]
+
 st.markdown('<div class="topnav-marker"></div>', unsafe_allow_html=True)
-c_brand, c_nav, c_toggle = st.columns([2.3, 5.5, 2])
-with c_brand:
+_nav_widths = [2.2] + [1.3] * len(nav_options) + [1.4]
+_nav_cols = st.columns(_nav_widths)
+
+with _nav_cols[0]:
     st.markdown("<div class='topnav-brand'>CDU Digital Twin</div>", unsafe_allow_html=True)
-with c_nav:
-    if st.session_state.get("active_page_nav") not in nav_options:
-        st.session_state["active_page_nav"] = nav_options[0]
-    page = st.radio(
-        "Navigation", nav_options, horizontal=True,
-        label_visibility="collapsed", key="active_page_nav",
-    )
-with c_toggle:
+
+for _i, _opt in enumerate(nav_options):
+    with _nav_cols[_i + 1]:
+        _is_active = st.session_state["active_page_nav"] == _opt
+        if st.button(
+            NAV_LABELS.get(_opt, _opt), key=f"nav_key_{_i}",
+            type="primary" if _is_active else "secondary",
+            use_container_width=True,
+        ):
+            st.session_state["active_page_nav"] = _opt
+            st.rerun()
+
+with _nav_cols[-1]:
     st.toggle("Dark mode", key="dark_mode")
+
+page = st.session_state["active_page_nav"]
 
 # ==============================================================================
 # PAGE 1: MODEL TRAINING & DCS UPLOAD
