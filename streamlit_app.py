@@ -74,7 +74,7 @@ def build_theme_css(dark: bool) -> str:
             metric_bg="#FFFFFF", metric_border="#E3E8EF", metric_label="#475467",
             sidebar_bg="#0B2540", sidebar_text="#E7ECF3",
             input_bg="#FFFFFF", input_text="#0B2540", input_border="#D0D5DD",
-            hero_grad="linear-gradient(120deg, #0B2540 0%, #1565C0 55%, #00B4D8 100%)",
+            hero_grad="linear-gradient(120deg, #0B2540 0%, #1565C0 55%, #00B4D8 70%)",
             table_filter="none",
         )
 
